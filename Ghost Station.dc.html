@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{ background:#E4E1D9; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; }
+  @keyframes gs-pulse{ 0%,100%{ opacity:1; } 50%{ opacity:.25; } }
+  input[type=range]{ -webkit-appearance:none; appearance:none; background:transparent; height:14px; cursor:pointer; }
+  input[type=range]::-webkit-slider-runnable-track{ height:2px; background:#C2BFB5; border-radius:2px; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:13px; height:13px; margin-top:-5.5px; border-radius:50%; background:#26251F; }
+  input[type=range]::-moz-range-track{ height:2px; background:#C2BFB5; border-radius:2px; }
+  input[type=range]::-moz-range-thumb{ width:13px; height:13px; border:none; border-radius:50%; background:#26251F; }
+  input[type=range]:focus{ outline:none; }
+  input[type=range]:focus-visible::-webkit-slider-thumb{ box-shadow:0 0 0 3px rgba(255,159,10,.4); }
+</style>
+</helmet>
+
+<div style="min-height:100vh; width:100%; display:flex; align-items:center; justify-content:center; padding:clamp(16px,4vw,56px); font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; color:#26251F; background:#E4E1D9;">
+
+  <div style="width:min(980px,100%); background:#F2F0EA; border:1px solid rgba(38,37,31,.13); border-radius:7px; box-shadow:0 1px 0 rgba(255,255,255,.7) inset, 0 18px 50px -28px rgba(38,37,31,.45), 0 2px 6px -2px rgba(38,37,31,.12); padding:clamp(20px,3.4vw,40px);">
+
+    <!-- HEADER -->
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:18px; flex-wrap:wrap;">
+      <div>
+        <div style="font-size:clamp(15px,2.1vw,19px); font-weight:700; letter-spacing:.34em; line-height:1;">GHOST STATION</div>
+        <div style="margin-top:9px; font-size:11px; font-weight:500; letter-spacing:.28em; color:#8A887F;">LIVE SIGNALS FROM DISTANT CITIES</div>
+      </div>
+      <div style="text-align:right; font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace; font-size:10px; letter-spacing:.16em; color:#9A988F; line-height:1.7;">
+        <div style="color:#6E6C63;">NODE_1956</div>
+        <div>GLOBAL TRANSMISSION NETWORK</div>
+      </div>
+    </div>
+
+    <div style="height:1px; background:rgba(38,37,31,.12); margin:clamp(18px,2.6vw,30px) 0;"></div>
+
+    <!-- READOUT -->
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:clamp(20px,4vw,48px); flex-wrap:wrap;">
+
+      <!-- frequency + signal -->
+      <div style="flex:1 1 200px; min-width:160px;">
+        <div style="display:flex; align-items:baseline; gap:8px;">
+          <div style="font-size:clamp(52px,9.5vw,86px); font-weight:700; letter-spacing:-.02em; line-height:.86; font-variant-numeric:tabular-nums;">{{ freqStr }}</div>
+          <div style="font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:12px; letter-spacing:.16em; color:#8A887F; padding-bottom:6px;">MHz</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; margin-top:16px;">
+          <div style="display:flex; align-items:flex-end; gap:3px; height:18px;">
+            <sc-for list="{{ signalBars }}" as="bar" hint-placeholder-count="7">
+              <div style="width:4px; height:{{ bar.h }}px; background:{{ bar.color }}; border-radius:1px;"></div>
+            </sc-for>
+          </div>
+          <div style="font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:9.5px; letter-spacing:.2em; color:#9A988F;">SIGNAL</div>
+        </div>
+      </div>
+
+      <!-- station / status -->
+      <div style="flex:1 1 240px; min-width:200px; text-align:right; min-height:88px;">
+        <sc-if value="{{ showStation }}" hint-placeholder-val="{{ true }}">
+          <div>
+            <div style="display:flex; align-items:center; justify-content:flex-end; gap:8px;">
+              <div style="width:7px; height:7px; border-radius:50%; background:{{ airDotColor }}; animation:{{ airDotAnim }};"></div>
+              <div style="font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:9.5px; letter-spacing:.2em; color:{{ airLabelColor }};">{{ onAirLabel }}</div>
+            </div>
+            <div style="font-size:clamp(22px,3.4vw,30px); font-weight:700; letter-spacing:-.01em; line-height:1.05; margin-top:10px;">{{ st.name }}</div>
+            <div style="font-size:12px; font-weight:500; letter-spacing:.12em; color:#6E6C63; margin-top:7px;">{{ st.place }}</div>
+            <div style="display:flex; align-items:center; justify-content:flex-end; gap:10px; margin-top:8px;">
+              <div style="font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:10px; letter-spacing:.16em; color:#FF9F0A;">{{ st.genre }}</div>
+              <div style="font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:10px; letter-spacing:.1em; color:#B3B1A8;">{{ st.coord }}</div>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noStation }}" hint-placeholder-val="{{ false }}">
+          <div style="padding-top:6px;">
+            <div style="font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:9.5px; letter-spacing:.22em; color:#B3B1A8;">RECEIVER</div>
+            <div style="font-size:clamp(18px,2.6vw,24px); font-weight:600; letter-spacing:.02em; color:#26251F; margin-top:14px; transition:opacity .35s ease;">{{ statusText }}</div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- DIAL WELL -->
+    <div style="margin-top:clamp(22px,3.2vw,34px);">
+      <div ref="{{ setWellRef }}" tabindex="0" role="slider" aria-label="Tuning dial" aria-valuemin="88" aria-valuemax="108" aria-valuenow="{{ freqStr }}" onPointerDown="{{ onDialPointerDown }}" onKeyDown="{{ onDialKeyDown }}" style="position:relative; height:128px; background:#DCD9D0; border:1px solid rgba(38,37,31,.14); border-radius:5px; overflow:hidden; cursor:grab; touch-action:none; box-shadow:inset 0 2px 5px rgba(38,37,31,.16), inset 0 -1px 0 rgba(255,255,255,.5); outline:none; user-select:none;">
+
+        <!-- moving scale -->
+        <div ref="{{ setScaleRef }}" style="position:absolute; top:0; left:0; height:100%; will-change:transform;">
+          <sc-for list="{{ ticks }}" as="tk" hint-placeholder-count="0">
+            <div style="position:absolute; top:30px; left:{{ tk.pos }}px; width:1px; height:{{ tk.h }}px; background:{{ tk.color }};"></div>
+          </sc-for>
+          <sc-for list="{{ labels }}" as="lb" hint-placeholder-count="0">
+            <div style="position:absolute; bottom:14px; left:{{ lb.pos }}px; transform:translateX(-50%); font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:11px; font-weight:500; color:#5C5A52; letter-spacing:.04em;">{{ lb.text }}</div>
+          </sc-for>
+          <sc-for list="{{ marks }}" as="mk" hint-placeholder-count="0">
+            <div style="position:absolute; top:24px; left:{{ mk.pos }}px; width:1px; height:62px; background:rgba(255,159,10,.55);"></div>
+          </sc-for>
+          <sc-for list="{{ marks }}" as="mk" hint-placeholder-count="0">
+            <div style="position:absolute; top:18px; left:{{ mk.pos }}px; transform:translateX(-50%); width:5px; height:5px; border-radius:50%; background:rgba(255,159,10,.7);"></div>
+          </sc-for>
+        </div>
+
+        <!-- fixed tuned zone + cursor -->
+        <div style="position:absolute; top:0; left:50%; transform:translateX(-50%); width:46px; height:100%; background:rgba(255,159,10,.06); pointer-events:none;"></div>
+        <div style="position:absolute; top:10px; left:50%; transform:translateX(-50%); width:2px; height:108px; background:#FF9F0A; pointer-events:none; box-shadow:0 0 6px rgba(255,159,10,.35);"></div>
+        <div style="position:absolute; top:2px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:7px solid #FF9F0A; pointer-events:none;"></div>
+      </div>
+      <div style="display:flex; justify-content:space-between; margin-top:9px; font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:9px; letter-spacing:.18em; color:#B3B1A8;">
+        <div>88.0</div>
+        <div>DRAG TO TUNE</div>
+        <div>108.0</div>
+      </div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div style="display:flex; align-items:center; gap:clamp(12px,2vw,20px); margin-top:clamp(22px,3vw,32px); flex-wrap:wrap;">
+
+      <button onClick="{{ onPlay }}" aria-label="{{ playLabel }}" style="display:inline-flex; align-items:center; gap:11px; height:52px; padding:0 24px; border:none; border-radius:5px; background:{{ playBg }}; color:{{ playFg }}; cursor:pointer; font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:11px; font-weight:600; letter-spacing:.18em; box-shadow:0 1px 2px rgba(38,37,31,.18); transition:background .2s ease;">
+        <span style="display:inline-block; width:11px; height:11px; background:{{ playFg }}; clip-path:{{ playIcon }};"></span>
+        {{ playLabel }}
+      </button>
+
+      <button onClick="{{ onNext }}" aria-label="Next signal" style="display:inline-flex; align-items:center; gap:9px; height:52px; padding:0 22px; border:1px solid rgba(38,37,31,.22); border-radius:5px; background:#F2F0EA; color:#26251F; cursor:pointer; font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:11px; font-weight:600; letter-spacing:.18em;">
+        NEXT SIGNAL
+        <span style="display:inline-block; width:10px; height:10px; background:#26251F; clip-path:polygon(0 0,100% 50%,0 100%,0 70%,55% 50%,0 30%);"></span>
+      </button>
+
+      <div style="display:flex; align-items:center; gap:11px; flex:1 1 150px; min-width:130px;">
+        <span style="font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:9.5px; letter-spacing:.18em; color:#9A988F;">VOL</span>
+        <input type="range" min="0" max="100" value="{{ volume }}" onInput="{{ onVolume }}" aria-label="Volume" style="flex:1; min-width:80px;" />
+      </div>
+
+      <div style="display:flex; gap:clamp(14px,2.4vw,26px); margin-left:auto; text-align:right;">
+        <div>
+          <div style="font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:9px; letter-spacing:.18em; color:#B3B1A8;">UTC</div>
+          <div style="font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:14px; letter-spacing:.06em; color:#26251F; margin-top:4px; font-variant-numeric:tabular-nums;">{{ utc }}</div>
+        </div>
+        <div>
+          <div style="font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:9px; letter-spacing:.18em; color:#B3B1A8;">{{ localLabel }}</div>
+          <div style="font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:14px; letter-spacing:.06em; color:#FF9F0A; margin-top:4px; font-variant-numeric:tabular-nums;">{{ localTime }}</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    freq: 91.8,
+    statusText: 'STANDBY',
+    phase: 'found',
+    signal: 1,
+    lockedIdx: 2,
+    isPlaying: false,
+    volume: 78,
+    utc: '--:--:--',
+    localTime: '--:--',
+    wellW: 820,
+    pxPerMhz: 117,
+    tickRev: 0,
+  };
+
+  STATIONS = [
+    { name:'FLUID',                 city:'Bristol',       country:'United Kingdom', genre:'Trip Hop',  freq:89.3,  tz:1,    coord:'51.45°N 2.59°W',   id:'fluid' },
+    { name:'LUSH',                  city:'London',        country:'United Kingdom', genre:'Chillout',  freq:90.9,  tz:1,    coord:'51.51°N 0.13°W',   id:'lush' },
+    { name:'GROOVE SALAD',          city:'Berlin',        country:'Germany',        genre:'Downtempo', freq:91.8,  tz:2,    coord:'52.52°N 13.40°E',  id:'groovesalad' },
+    { name:'SECRET AGENT',          city:'Paris',         country:'France',         genre:'Lounge',    freq:93.5,  tz:2,    coord:'48.86°N 2.35°E',   id:'secretagent' },
+    { name:'ILLINOIS ST. LOUNGE',   city:'Tokyo',         country:'Japan',          genre:'Lounge',    freq:94.5,  tz:9,    coord:'35.68°N 139.69°E', id:'illstreet' },
+    { name:'CLIQHOP IDM',           city:'Kyoto',         country:'Japan',          genre:'IDM',       freq:96.2,  tz:9,    coord:'35.01°N 135.77°E', id:'cliqhop' },
+    { name:'DRONE ZONE',            city:'Reykjavik',     country:'Iceland',        genre:'Ambient',   freq:98.1,  tz:0,    coord:'64.15°N 21.94°W',  id:'dronezone' },
+    { name:'SPACE STATION SOMA',    city:'Oslo',          country:'Norway',         genre:'Ambient',   freq:99.7,  tz:2,    coord:'59.91°N 10.75°E',  id:'spacestation' },
+    { name:'BEAT BLENDER',          city:'San Francisco', country:'United States',  genre:'Downtempo', freq:101.7, tz:-7,   coord:'37.77°N 122.42°W', id:'beatblender' },
+    { name:'SONIC UNIVERSE',        city:'New York',      country:'United States',  genre:'Nu Jazz',   freq:103.4, tz:-4,   coord:'40.71°N 74.01°W',  id:'sonicuniverse' },
+    { name:'SUBURBS OF GOA',        city:'Goa',           country:'India',          genre:'Downtempo', freq:105.1, tz:5.5,  coord:'15.30°N 74.12°E',  id:'suburbsofgoa' },
+    { name:'THE TRIP',              city:'Mexico City',   country:'Mexico',         genre:'Downtempo', freq:106.8, tz:-6,   coord:'19.43°N 99.13°W',  id:'thetrip' },
+  ];
+  SCAN_MSGS = ['SCANNING LOW FREQUENCIES...','LOOKING FOR HUMAN ACTIVITY...','DECODING ATMOSPHERE...','SWEEPING THE SPECTRUM...','LISTENING TO STATIC...'];
+
+  // motion state (instance-authoritative)
+  freq = 91.8;
+  vel = 0;
+  target = null;
+  dragging = false;
+  lastX = 0;
+  dragVel = 0;
+  currentIdx = 2;
+
+  _status = 'STANDBY';
+  _phase = 'found';
+  _signal = 1;
+  _lockedIdx = 2;
+  _foundFlash = 0;
+  _scanT = 0; _scanI = 0; _scanG = 0;
+  _lastCommit = 0;
+  _lastT = 0;
+  _fadeRAF = null;
+  _attempts = 0;
+
+  componentDidMount() {
+    this.audio = new Audio();
+    this.audio.preload = 'none';
+    this.audio.crossOrigin = 'anonymous';
+    this.audio.addEventListener('error', this.onAudioError);
+    window.addEventListener('resize', this.measure);
+    window.addEventListener('pointermove', this.onPointerMove);
+    window.addEventListener('pointerup', this.onPointerUp);
+    this.clockTimer = setInterval(this.updateClocks, 1000);
+    this.updateClocks();
+    this.measure();
+    this._lastT = performance.now();
+    const step = (t) => { this.frame(t); this.raf = requestAnimationFrame(step); };
+    this.raf = requestAnimationFrame(step);
+  }
+
+  componentWillUnmount() {
+    cancelAnimationFrame(this.raf);
+    if (this._fadeRAF) cancelAnimationFrame(this._fadeRAF);
+    clearInterval(this.clockTimer);
+    window.removeEventListener('resize', this.measure);
+    window.removeEventListener('pointermove', this.onPointerMove);
+    window.removeEventListener('pointerup', this.onPointerUp);
+    if (this.audio) { this.audio.pause(); this.audio.src = ''; }
+  }
+
+  setWellRef = (el) => { this.wellEl = el; };
+  setScaleRef = (el) => { this.scaleEl = el; this.applyTransform(); };
+
+  measure = () => {
+    const el = this.wellEl; if (!el) return;
+    const w = el.clientWidth;
+    const pxPerMhz = w / 7;
+    if (this.scaleEl) this.scaleEl.style.width = (20 * pxPerMhz) + 'px';
+    this.buildTicks(pxPerMhz);
+    this.setState({ wellW: w, pxPerMhz, tickRev: this.state.tickRev + 1 }, () => this.applyTransform());
+  };
+
+  buildTicks(pxPerMhz) {
+    const ticks = [], labels = [];
+    for (let i = 0; i <= 100; i++) {
+      const f = 88 + i * 0.2;
+      const ff = Math.round(f * 10) / 10;
+      const major = (i % 10 === 0);
+      const half = (i % 5 === 0);
+      ticks.push({ pos: (ff - 88) * pxPerMhz, h: major ? 40 : (half ? 26 : 16), color: major ? '#5C5A52' : 'rgba(38,37,31,.32)' });
+      if (major) labels.push({ pos: (ff - 88) * pxPerMhz, text: ff.toFixed(0) });
+    }
+    this.ticks = ticks;
+    this.labels = labels;
+    this.marks = this.STATIONS.map(s => ({ pos: (s.freq - 88) * pxPerMhz }));
+  }
+
+  applyTransform() {
+    if (!this.scaleEl) return;
+    const x = this.state.wellW / 2 - (this.freq - 88) * this.state.pxPerMhz;
+    this.scaleEl.style.transform = 'translateX(' + x + 'px)';
+  }
+
+  nearestIdx(f) {
+    let bi = 0, bd = 1e9;
+    this.STATIONS.forEach((s, i) => { const d = Math.abs(s.freq - f); if (d < bd) { bd = d; bi = i; } });
+    return bi;
+  }
+
+  frame(t) {
+    const dt = Math.min(0.05, (t - this._lastT) / 1000);
+    this._lastT = t;
+
+    if (!this.dragging) {
+      if (this.target != null) {
+        const k = 110, c = 18;
+        const a = -k * (this.freq - this.target) - c * this.vel;
+        this.vel += a * dt;
+        this.freq += this.vel * dt;
+        if (Math.abs(this.freq - this.target) < 0.008 && Math.abs(this.vel) < 0.05) {
+          this.freq = this.target; this.vel = 0; this.target = null;
+        }
+      } else if (Math.abs(this.vel) > 0.02) {
+        this.freq += this.vel * dt;
+        this.vel *= Math.exp(-3.2 * dt);
+        if (Math.abs(this.vel) < 0.4) {
+          const ni = this.nearestIdx(this.freq);
+          if (Math.abs(this.STATIONS[ni].freq - this.freq) < 0.55) { this.target = this.STATIONS[ni].freq; }
+          else { this.vel = 0; }
+        }
+      }
+    }
+    this.freq = Math.max(88, Math.min(108, this.freq));
+    if (this.freq <= 88 || this.freq >= 108) this.vel = 0;
+    this.applyTransform();
+    this.computeStatus(t);
+    this.commit(false);
+  }
+
+  computeStatus(t) {
+    const ni = this.nearestIdx(this.freq);
+    const near = this.STATIONS[ni];
+    const dist = Math.abs(near.freq - this.freq);
+    this._signal = Math.max(0, Math.min(1, 1 - dist / 0.8));
+    const moving = this.dragging || Math.abs(this.vel) > 0.2 || this.target != null;
+
+    if (dist <= 0.16 && !moving) {
+      if (this._lockedIdx !== ni) {
+        this._lockedIdx = ni;
+        this._phase = 'found';
+        this._foundFlash = t;
+        this.onLock(ni);
+        this.commit(true);
+      } else {
+        this._phase = 'found';
+      }
+    } else {
+      if (this._lockedIdx != null && dist > 0.3) { this._lockedIdx = null; this.commit(true); }
+      if (moving && dist > 0.5) {
+        this._phase = 'scanning';
+        this._status = this.scanMessage(t, near);
+      } else if (dist > 0.4) {
+        this._phase = 'weak';
+        this._status = 'SIGNAL WEAK...';
+      } else {
+        this._phase = 'decoding';
+        this._status = (this.target != null) ? ('SEARCHING ' + near.city.toUpperCase() + '...') : 'DECODING SIGNAL...';
+      }
+    }
+  }
+
+  scanMessage(t, near) {
+    if (t - this._scanT > 680) { this._scanT = t; this._scanI = (this._scanI + 1) % 2; this._scanG = (this._scanG + 1) % this.SCAN_MSGS.length; }
+    return this._scanI === 0 ? ('SEARCHING ' + near.city.toUpperCase() + '...') : this.SCAN_MSGS[this._scanG];
+  }
+
+  commit(force) {
+    const now = performance.now();
+    if (!force && now - this._lastCommit < 55) return;
+    this._lastCommit = now;
+    this.setState({ freq: this.freq, statusText: this._status, phase: this._phase, signal: this._signal, lockedIdx: this._lockedIdx });
+  }
+
+  // ---- audio ----
+  onLock(idx) {
+    if (this.state.isPlaying) this.crossfade(idx);
+    else this.currentIdx = idx;
+    this.updateClocks();
+  }
+
+  crossfade(idx) {
+    const st = this.STATIONS[idx];
+    const url = 'https://ice.somafm.com/' + st.id + '-128-mp3';
+    this.currentIdx = idx;
+    this._attempts = 0;
+    const a = this.audio;
+    const target = this.state.volume / 100;
+    this.cancelFade();
+    if (a.src && !a.paused) {
+      this.fade(a, a.volume, 0, 1000, () => {
+        a.src = url; a.load(); a.volume = 0;
+        a.play().then(() => this.fade(a, 0, target, 1000)).catch(() => {});
+      });
+    } else {
+      a.src = url; a.load(); a.volume = 0;
+      a.play().then(() => this.fade(a, 0, target, 1000)).catch(() => {});
+    }
+  }
+
+  fade(a, from, to, ms, cb) {
+    this.cancelFade();
+    const start = performance.now();
+    const step = (t) => {
+      const k = Math.min(1, (t - start) / ms);
+      a.volume = Math.max(0, Math.min(1, from + (to - from) * k));
+      if (k < 1) { this._fadeRAF = requestAnimationFrame(step); }
+      else { this._fadeRAF = null; if (cb) cb(); }
+    };
+    this._fadeRAF = requestAnimationFrame(step);
+  }
+  cancelFade() { if (this._fadeRAF) { cancelAnimationFrame(this._fadeRAF); this._fadeRAF = null; } }
+
+  onPlay = () => {
+    if (this.state.isPlaying) {
+      this.fade(this.audio, this.audio.volume, 0, 400, () => this.audio.pause());
+      this.setState({ isPlaying: false });
+    } else {
+      const idx = this.currentIdx != null ? this.currentIdx : (this._lockedIdx != null ? this._lockedIdx : this.nearestIdx(this.freq));
+      this.setState({ isPlaying: true }, () => this.crossfade(idx));
+    }
+  };
+
+  onNext = () => {
+    let idx = this.STATIONS.findIndex(s => s.freq > this.freq + 0.25);
+    if (idx === -1) idx = 0;
+    this.setState({ isPlaying: true });
+    this.vel = 0;
+    this.target = this.STATIONS[idx].freq;
+  };
+
+  onAudioError = () => {
+    if (!this.state.isPlaying) return;
+    this._attempts++;
+    this._status = 'SIGNAL LOST — REACQUIRING...';
+    this._phase = 'weak';
+    this.commit(true);
+    if (this._attempts > this.STATIONS.length) return;
+    const next = (this.currentIdx + 1) % this.STATIONS.length;
+    setTimeout(() => { this.vel = 0; this.target = this.STATIONS[next].freq; }, 900);
+  };
+
+  onVolume = (e) => {
+    const v = Number(e.target.value);
+    this.setState({ volume: v });
+    if (this.state.isPlaying && !this._fadeRAF) this.audio.volume = v / 100;
+  };
+
+  // ---- pointer ----
+  onDialPointerDown = (e) => {
+    this.dragging = true;
+    this.target = null;
+    this.vel = 0;
+    this.dragVel = 0;
+    this.lastX = e.clientX;
+    if (this.wellEl) this.wellEl.style.cursor = 'grabbing';
+  };
+  onPointerMove = (e) => {
+    if (!this.dragging) return;
+    const dx = e.clientX - this.lastX;
+    this.lastX = e.clientX;
+    const df = -dx / this.state.pxPerMhz;
+    this.freq = Math.max(88, Math.min(108, this.freq + df));
+    const inst = df / Math.max(0.001, 0.016) * 0.5;
+    this.dragVel = this.dragVel * 0.6 + inst * 0.4;
+    this.applyTransform();
+  };
+  onPointerUp = () => {
+    if (!this.dragging) return;
+    this.dragging = false;
+    this.vel = Math.max(-9, Math.min(9, this.dragVel));
+    if (this.wellEl) this.wellEl.style.cursor = 'grab';
+  };
+  onDialKeyDown = (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      this.vel = 0;
+      this.target = Math.max(88, Math.min(108, (this.target != null ? this.target : this.freq) + (e.key === 'ArrowLeft' ? -0.2 : 0.2)));
+    }
+  };
+
+  // ---- clocks ----
+  updateClocks = () => {
+    const now = new Date();
+    const p = (n) => String(n).padStart(2, '0');
+    const utc = p(now.getUTCHours()) + ':' + p(now.getUTCMinutes()) + ':' + p(now.getUTCSeconds());
+    let localTime = '--:--', localLabel = 'LOCAL';
+    if (this._lockedIdx != null) {
+      const st = this.STATIONS[this._lockedIdx];
+      const ms = now.getTime() + (now.getTimezoneOffset() * 60000) + st.tz * 3600000;
+      const d = new Date(ms);
+      localTime = p(d.getHours()) + ':' + p(d.getMinutes());
+      localLabel = st.city.toUpperCase();
+    }
+    this.setState({ utc, localTime, localLabel });
+  };
+
+  renderVals() {
+    const s = this.state;
+    const tickRev = s.tickRev;
+    const li = s.lockedIdx;
+    const showStation = li != null;
+    const st = showStation ? this.STATIONS[li] : null;
+
+    const level = s.signal + (s.isPlaying && showStation ? (Math.random() - 0.5) * 0.14 : 0);
+    const bars = [];
+    for (let i = 0; i < 7; i++) {
+      const on = (i + 1) / 7 <= level;
+      bars.push({ h: 6 + i * 2, color: on ? (i >= 5 ? '#FF9F0A' : '#26251F') : 'rgba(38,37,31,.14)' });
+    }
+
+    const playing = s.isPlaying;
+    const flash = (performance.now() - this._foundFlash) < 1500;
+    const onAirLabel = flash ? 'SIGNAL FOUND' : (playing ? 'ON AIR' : 'STANDBY');
+
+    return {
+      freqStr: s.freq.toFixed(1),
+      ticks: this.ticks || [],
+      labels: this.labels || [],
+      marks: this.marks || [],
+      setWellRef: this.setWellRef,
+      setScaleRef: this.setScaleRef,
+      onDialPointerDown: this.onDialPointerDown,
+      onDialKeyDown: this.onDialKeyDown,
+      showStation,
+      noStation: !showStation,
+      st: st ? { name: st.name, place: (st.city + ', ' + st.country).toUpperCase(), genre: st.genre.toUpperCase(), coord: st.coord } : { name: '', place: '', genre: '', coord: '' },
+      statusText: s.statusText,
+      signalBars: bars,
+      onAirLabel,
+      airLabelColor: flash ? '#FF9F0A' : (playing ? '#FF9F0A' : '#9A988F'),
+      airDotColor: (playing || flash) ? '#FF9F0A' : '#C2BFB5',
+      airDotAnim: playing ? 'gs-pulse 1.8s ease-in-out infinite' : 'none',
+      isPlaying: playing,
+      playLabel: playing ? 'PAUSE' : 'PLAY',
+      playBg: playing ? '#FF9F0A' : '#26251F',
+      playFg: playing ? '#26251F' : '#F2F0EA',
+      playIcon: playing ? 'polygon(0 0,38% 0,38% 100%,0 100%,0 0)' : 'polygon(0 0,100% 50%,0 100%)',
+      volume: s.volume,
+      onPlay: this.onPlay,
+      onNext: this.onNext,
+      onVolume: this.onVolume,
+      utc: s.utc,
+      localTime: s.localTime,
+      localLabel: s.localLabel,
+    };
+  }
+}
+</script>
+</body>
+</html>
