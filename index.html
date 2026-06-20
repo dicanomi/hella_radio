@@ -6,6 +6,54 @@
 <script src="./support.js"></script>
 </head>
 <body>
+ <!-- GLOBAL HELLA.RICH NAV -->
+ <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap">
+ <style>
+  @keyframes hrNavFadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .hr-nav{position:fixed;top:clamp(14px,2.2vh,22px);left:clamp(16px,2.5vw,28px);z-index:99999;display:flex;align-items:center;gap:6px;font-family:'DM Mono',ui-monospace,'SF Mono',Menlo,Consolas,monospace}
+  .hr-back{display:flex;align-items:center;gap:7px;padding:0 clamp(10px,1.5vw,14px);height:clamp(30px,4vh,36px);background:rgba(8,8,6,.72);border:1px solid rgba(255,255,255,.09);border-radius:3px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);text-decoration:none;transition:background .18s ease,border-color .18s ease;color:rgba(255,255,255,.55)}
+  .hr-back:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18);color:rgba(255,255,255,.75)}
+  .hr-back-label{font-size:clamp(8px,.85vw,10px);letter-spacing:.18em;text-transform:uppercase;line-height:1;user-select:none}
+  .hr-switcher{width:clamp(28px,3.5vw,32px);height:clamp(28px,3.5vw,32px);border-radius:3px;background:rgba(8,8,6,.72);border:1px solid rgba(255,255,255,.09);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .18s ease,border-color .18s ease;padding:0;color:rgba(255,255,255,.6);position:relative}
+  .hr-switcher:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.18);color:rgba(255,255,255,.8)}
+  .hr-switcher[aria-expanded="true"]{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.18)}
+  .hr-dropdown{position:absolute;top:calc(100% + 6px);left:0;min-width:170px;background:rgba(8,8,6,.94);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.09);border-radius:3px;padding:4px;box-shadow:0 8px 32px rgba(0,0,0,.5);animation:hrNavFadeIn .15s ease;display:none}
+  .hr-dropdown.open{display:block}
+  .hr-dropdown-label{padding:5px 8px 4px;font-size:clamp(7px,.75vw,8px);letter-spacing:.22em;color:rgba(255,255,255,.22);text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:3px}
+  .hr-project-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:2px;text-decoration:none;transition:background .12s ease;cursor:pointer}
+  .hr-project-item:hover{background:rgba(255,255,255,.07)}
+  .hr-project-item.current{background:rgba(255,255,255,.06)}
+  .hr-project-dot{width:4px;height:4px;border-radius:50%;background:rgba(80,200,120,.7);flex-shrink:0}
+  .hr-project-title{font-size:clamp(8px,.9vw,10px);letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.65);line-height:1}
+  .hr-project-item.current .hr-project-title{color:rgba(255,255,255,.88)}
+  </style>
+ <nav class="hr-nav" aria-label="hella.rich navigation">
+  <a href="https://hella.rich/" class="hr-back" aria-label="Back to hella.rich">
+   <svg width="12" height="8" viewBox="0 0 12 8" fill="none"><path d="M6 1L1 4L6 7M1 4H11" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>svg>
+   <span class="hr-back-label">hella.rich</span>span>
+  </a>a>
+  <div style="position:relative">
+   <button class="hr-switcher" id="hrSwitcher" aria-label="Switch product" aria-expanded="false">
+    <svg width="14" height="10" viewBox="0 0 14 10" fill="none"><path d="M1 2H13M1 5H13M1 8H13" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>svg>
+   </button>button>
+   <div class="hr-dropdown" id="hrDropdown" role="menu">
+    <div class="hr-dropdown-label">Products</div>div>
+    <a href="https://hella.rich/the-eye" class="hr-project-item" role="menuitem"><span class="hr-project-dot"></span>span><span class="hr-project-title">THE EYE</span>span></a>a>
+    <a href="https://hella.rich/low-battery" class="hr-project-item" role="menuitem"><span class="hr-project-dot"></span>span><span class="hr-project-title">LOW BATTERY</span>span></a>a>
+    <a href="https://hella.rich/space-drone" class="hr-project-item" role="menuitem"><span class="hr-project-dot"></span>span><span class="hr-project-title">SPACE DRONE</span>span></a>a>
+    <a href="https://hella.rich/aether" class="hr-project-item" role="menuitem"><span class="hr-project-dot"></span>span><span class="hr-project-title">AETHER</span>span></a>a>
+    <a href="https://hella.rich/dead-air" class="hr-project-item" role="menuitem"><span class="hr-project-dot"></span>span><span class="hr-project-title">DEAD AIR</span>span></a>a>
+    <a href="https://hella.rich/orb" class="hr-project-item" role="menuitem"><span class="hr-project-dot"></span>span><span class="hr-project-title">ORB</span>span></a>a>
+    <a href="https://hella.rich/fourcast" class="hr-project-item" role="menuitem"><span class="hr-project-dot"></span>span><span class="hr-project-title">FOURCAST</span>span></a>a>
+    <a href="https://radio.hella.rich/" class="hr-project-item current" role="menuitem"><span class="hr-project-dot"></span>span><span class="hr-project-title">RADIO</span>span></a>a>
+   </div>div>
+  </div>div>
+ </nav>nav>
+ <script>
+  (function(){var b=document.getElementById('hrSwitcher'),d=document.getElementById('hrDropdown');if(!b||!d)return;b.addEventListener('click',function(e){e.stopPropagation();var o=d.classList.toggle('open');b.setAttribute('aria-expanded',o?'true':'false')});document.addEventListener('click',function(e){if(!d.contains(e.target)&&e.target!==b){d.classList.remove('open');b.setAttribute('aria-expanded','false')}});document.addEventListener('keydown',function(e){if(e.key==='Escape'){d.classList.remove('open');b.setAttribute('aria-expanded','false')}});})();
+ </script>
+ <!-- END GLOBAL HELLA.RICH NAV -->
+ </script>
 <x-dc>
 <helmet>
 <style>
