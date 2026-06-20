@@ -31,7 +31,7 @@
   <!-- HEADER -->
   <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:24px; flex-wrap:wrap;">
     <div>
-      <div onMouseEnter="{{ onLogoHover }}" onMouseLeave="{{ onLogoLeave }}" style="font-family:'TAY Birdie','Helvetica Neue',Helvetica,Arial,sans-serif; font-size:clamp(30px,5.2vw,52px); font-weight:400; letter-spacing:.06em; line-height:.95; color:#8A2B12; text-shadow:0 0 13px rgba(138,43,18,.45); display:inline-flex; cursor:default;"><sc-for list="{{ logoChars }}" as="lc" hint-placeholder-count="11"><span style="font-family:{{ lc.ff }}; white-space:pre;">{{ lc.ch }}</span></sc-for></div>
+      <div onMouseEnter="{{ onLogoHover }}" onMouseLeave="{{ onLogoLeave }}" style="font-family:'TAY Birdie','Helvetica Neue',Helvetica,Arial,sans-serif; font-size:clamp(30px,5.2vw,52px); font-weight:400; letter-spacing:.06em; line-height:.95; color:#8A2B12; text-shadow:0 0 13px rgba(138,43,18,.45); display:inline-flex; cursor:default;"><sc-for list="{{ logoChars }}" as="lc" hint-placeholder-count="11"><span style="font-family:{{ lc.ff }}; white-space:pre; opacity:{{ lc.op }}; transition:opacity .22s ease;">{{ lc.ch }}</span></sc-for></div>
       <div style="margin-top:12px; font-size:11px; font-weight:500; letter-spacing:.34em; color:#6E6A62;">GLOBAL SIGNAL NETWORK</div>
       <div style="margin-top:18px; font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace; font-size:10px; letter-spacing:.22em; color:#4E4B45;">NODE_1956 &nbsp;//&nbsp; LIVE TRANSMISSIONS</div>
     </div>
@@ -45,7 +45,7 @@
   </div>
 
   <!-- PIRATE FEED MARQUEE (drag to scrub · hold to pause · release to resume) -->
-  <div style="border-top:1px solid rgba(255,159,10,.12); border-bottom:1px solid rgba(255,159,10,.12); padding:10px 0; overflow:hidden; cursor:grab; -webkit-mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent); mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);">
+  <div ref="{{ setTickerWrapRef }}" style="border-top:1px solid rgba(255,159,10,.12); border-bottom:1px solid rgba(255,159,10,.12); padding:10px 0; overflow:hidden; cursor:grab; -webkit-mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent); mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);">
     <div ref="{{ setTickerTrackRef }}" onPointerDown="{{ onTickerDown }}" onPointerMove="{{ onTickerMove }}" onPointerUp="{{ onTickerUp }}" onPointerCancel="{{ onTickerUp }}" style="display:flex; width:max-content; white-space:nowrap; will-change:transform; touch-action:pan-y; user-select:none; cursor:grab; font-family:'TAY Birdie','Helvetica Neue',Helvetica,Arial,sans-serif; font-size:14px; font-weight:400; letter-spacing:.12em; color:#B98A3A;">
       <sc-for list="{{ tickerItems }}" as="it" hint-placeholder-count="6">
         <a href="{{ it.url }}" target="_blank" rel="noopener noreferrer" onClick="{{ onTickerItemClick }}" draggable="false" style="padding-right:52px; color:#B98A3A; text-decoration:none; white-space:nowrap;">{{ it.text }}</a>
@@ -193,6 +193,7 @@ class Component extends DCLogic {
     lockedIdx: 0,
     isPlaying: false,
     volume: 78,
+    tickerOpacity: 1,
     utc: '--:--:--',
     specW: 600,
   };
@@ -242,13 +243,102 @@ class Component extends DCLogic {
     { source: 'HELLA RADIO', title: 'Live from the global signal network', url: 'https://www.youredm.com/news/' },
   ];
   _newsItems = null;
+  _feedIdx = null; _feedItems = [];  // per-station weird-transmission ticker (cached per tune)
+  _feedKey = null; _tickerWantKey = null; _tickerFading = false; _tickerT1 = null;  // ticker fade-out/in on channel change
+  // Shared cosmic pool — every station draws from this (Grand Order of Design, aliens, false news, death, afterlife)
+  COSMIC = [
+    'GOD STANDS FOR GRAND ORDER OF DESIGN — AND YOU ARE LISTENING TO IT',
+    'EVERY RELIGION IS 100% RIGHT AND 100% WRONG. PLEASE HOLD',
+    'WHEN YOU DIE YOU PICK THE EXIT. MOST PEOPLE CHOOSE THE GIFT SHOP',
+    'BREAKING: HEAVEN IS JUST A BETTER SOUND SYSTEM',
+    'THE MEANING OF LIFE WAS LEAKED IN 1997. NOBODY CLICKED THE LINK',
+    'ALIENS HAVE BEEN SEEDING BASSLINES INTO HUMAN CULTURE SINCE 4000 BC',
+    'ALERT: REALITY IS RENDERING AT 24 FRAMES PER SECOND. AVOID THE EDGES',
+    'FALSE NEWS: THE MOON IS A SPEAKER. TRUE NEWS: SO ARE YOU',
+    'YOU WERE BORN OWING NOTHING. THE INVOICE IS A FORGERY',
+    'DEATH IS A FREQUENCY CHANGE, NOT A POWER-OFF',
+    'REPORTS CONFIRM: GHOSTS ARE LISTENERS WHO NEVER CHANGED THE STATION',
+    'HELLA.RICH IS NOT A BANK BALANCE. IT IS A BANDWIDTH',
+    'RUMOR: THE AFTERLIFE NOW OFFERS A 14-DAY FREE TRIAL',
+    'SCIENTISTS HAVE ISOLATED THE SOUL. IT IS MOSTLY REVERB',
+    'EVERY PRAYER IS A FORM SUBMISSION. THE SERVER IS UP',
+    'YOU ARE 73% INTERCEPTED TRANSMISSION AND 27% SNACK',
+    'THE UNIVERSE IS A LOOP PEDAL SOMEONE LEFT ON BY ACCIDENT',
+    'ALERT: AN ANGEL FILED A NOISE COMPLAINT. IT WAS DENIED',
+    'CONFIRMED: NOBODY KNOWS WHAT THEY ARE DOING, INCLUDING THE ARCHITECT',
+    'PICK YOUR HEAVEN AT CHECKOUT. RETURNS ARE NON-REFUNDABLE',
+    'THE GRAND ORDER OF DESIGN CONVENES NIGHTLY ON THIS FREQUENCY',
+    'BREAKING: THE REINCARNATION QUEUE IS NOW 9 BILLION DEEP',
+    'EVERYTHING YOU LOVE IS BORROWED FROM THE FUTURE',
+    'THE DEVIL HAS GREAT TASTE AND TERRIBLE FOLLOW-THROUGH',
+    'REALITY IS OPEN SOURCE. NOBODY READS THE DOCS',
+    'STATIC IS THE SOUND OF EVERYONE PRAYING AT ONCE',
+    'YOU CAN TAKE IT WITH YOU. JUST NOT THE CHARGER',
+    'THE STARS ARE PIXELS THAT REFUSED TO RENDER',
+    'ALERT: SOMEONE IS BROADCASTING YOUR THOUGHTS BACK SLIGHTLY LATE',
+    'EVERY ENDING IS A FADE, NEVER A CUT',
+    'HELLA.RICH MEANS YOU OWN NOTHING AND HEAR EVERYTHING',
+    'GODS ARE JUST OLD STATIONS NOBODY RE-TUNED',
+    'WHEN IN DOUBT, THE ANSWER IS LOWER THE TEMPO',
+    'THE GRAND ORDER OF DESIGN REGRETS THE MOSQUITO. NOTHING ELSE',
+    'YOUR FUNERAL PLAYLIST IS ALREADY 4 TRACKS LONG. KEEP GOING',
+    'TIME IS A FLAT CIRCLE BECAUSE SOMEBODY QUANTIZED IT',
+  ];
+  // Per-station signature lines, tied to each station's identity
+  STATION_LINES = {
+    'GROOVE SALAD': ['GROOVE SALAD CONTAINS NO VEGETABLES, ONLY REVERB AND REGRET', 'STUDIES SHOW DOWNTEMPO ADDS 4 YEARS TO YOUR LIFE AND REMOVES 4 FROM YOUR AMBITION', 'THE SALAD IS TOSSED NIGHTLY BY AN ENTITY THAT DECLINES TO BE NAMED'],
+    'SECRET AGENT': ['SECRET AGENT HAS BEEN SURVEILLING YOU SINCE TRACK ONE. YOU LOOK GREAT', 'CLASSIFIED: THE BOSSA NOVA WAS A CODED CONFESSION ALL ALONG'],
+    'ILL STREET LOUNGE': ['THE LOUNGE NEVER CLOSES BECAUSE TIME DOES NOT WORK IN HERE', 'EVERY MARTINI ORDERED ON THIS FREQUENCY ARRIVES IN A PARALLEL BAR'],
+    'DEEP SPACE ONE': ['DEEP SPACE ONE BROADCASTS FROM A POINT THAT NO LONGER EXISTS', 'VOYAGER HEARD THIS STATION AND DECIDED TO KEEP GOING'],
+    'NTS RADIO': ['NTS STANDS FOR NOTHING. THAT IS THE ENTIRE POINT', 'SOMEWHERE A SELECTOR IS PLAYING A RECORD THAT DOES NOT OFFICIALLY EXIST'],
+    'DUBLAB': ['DUBLAB SCIENTISTS HAVE SUCCESSFULLY WEAPONIZED THE OFFBEAT'],
+    'DUBSTEP BEYOND': ['THE BASS DROP REGISTERED ON A SEISMOGRAPH 600 MILES AWAY', 'WARNING: THIS WOBBLE HAS ACHIEVED SENTIENCE AND DEMANDS RIGHTS'],
+    'THE LOT RADIO': ['BROADCASTING FROM A SHIPPING CONTAINER THAT IS TECHNICALLY A NATION NOW'],
+    'NOODS RADIO': ['NO ADS. NO BOSSES. NO CLOTHES. NOODS RADIO'],
+    'AMBIENT SLEEPING PILL': ['DO NOT OPERATE HEAVY MACHINERY. DO NOT OPERATE LIGHT MACHINERY EITHER', 'SIDE EFFECTS INCLUDE PEACE, DROWSINESS, AND BRIEF GLIMPSES OF THE INFINITE'],
+    'THE DARK ZONE': ['THE DARK ZONE IS WHERE DELETED FILES GO TO DANCE', 'IF YOU CAN HEAR THIS, YOU HAVE ALREADY STAYED TOO LONG. WELCOME'],
+    'DI.FM LOFI LOUNGE': ['THE SAME 4 BARS HAVE LOOPED SINCE 2016. THE STUDENT NEVER GRADUATED'],
+    'FIP GROOVE': ['FIP IS FRENCH FOR TRUST US, IT GETS WEIRDER'],
+    'HÖR BERLIN': ['HÖR: A WHITE TILED ROOM WHERE TIME GOES TO SWEAT'],
+    'RINSE FM': ['RINSE WAS ILLEGAL FOR 16 YEARS. THE CRIME WAS BEING TOO GOOD'],
+    'REFUGE WORLDWIDE': ['REFUGE BROADCASTS FROM A FORMER FUNERAL HOME. THE ACOUSTICS ARE TO DIE FOR'],
+    'KIOSK RADIO': ['KIOSK FITS 40 PEOPLE AND ONE EXISTENTIAL CRISIS'],
+    'DEF CON RADIO': ['DEF CON RADIO: IF YOU CAN READ THIS, THEY ARE ALREADY IN YOUR ROUTER', 'THIS TRANSMISSION IS ENCRYPTED. YOU DECODED IT WITH YOUR EARS'],
+    'FIP ELECTRO': ['ELECTRO IS JUST THE GRAND ORDER OF DESIGN SHOWING OFF'],
+    'RADIO ALHARA': ['ALHARA MEANS THE NEIGHBORHOOD. EVERYONE IS INVITED, ESPECIALLY YOU'],
+    'SUB FM': ['SUB FM: SO LOW YOU FEEL IT IN A TOOTH YOU FORGOT YOU HAD'],
+    'MUTANT RADIO': ['MUTANT RADIO BROADCASTS FROM A FORMER POWER PLANT. IT IS STILL HUMMING', 'THE MUTATION IS WORKING. YOU HAVE NOT CHANGED THE STATION IN AN HOUR'],
+    'RADIO RAHEEM': ['RADIO RAHEEM REFUSES TO TURN IT DOWN. THAT IS THE ENTIRE EDITORIAL POLICY'],
+    'SIGNAL ANOMALY': ['SOURCE UNKNOWN. ORIGIN UNVERIFIED. LANGUAGE UNRECOGNIZED', 'THIS IS NOT A STATION. THIS IS SOMETHING LISTENING BACK'],
+  };
   // SIGNAL ANOMALY (107.9) — procedurally synthesized, no recordings, no copyright
   ANOM_MSGS = ['► SOURCE UNKNOWN', '► TRANSMISSION INTERCEPTED', '► SIGNAL ORIGIN UNVERIFIED', '► LANGUAGE UNRECOGNIZED', '► RECEIVING DATA'];
   _anomActive = false; _anomTimer = null; _anomStatic = null; anomMaster = null;
   _decode = null;  // station-name translation/decode animation
-  _logoDecode = null; _logoTimer = null;  // HELLA_RADIO logo alien→current font morph (load + every 60s)
+  _logoDecode = null; _logoTimer = null;  // HELLA_RADIO logo alien→current font morph (load + station change)
   _logoHover = null;  // hover-driven morph: {dir:'toAlien'|'toEnglish', start, dur}
-  startLogoDecode = () => { if (this._logoHover) return; this._logoDecode = { start: performance.now(), hold: 600, dur: 950 }; };
+  // Languages the title rotates through every 30s (ff: font key resolved in render)
+  LOGO_LANGS = [
+    { t: 'HELLA_RADIO',     ff: 'TB' },     // Latin
+    { t: 'ヘラ ラジオ',        ff: 'SANS' },   // Japanese Katakana
+    { t: '赫拉电台',          ff: 'SANS' },   // Chinese Mandarin
+    { t: 'ХЕЛЛА РАДИО',     ff: 'SANS' },   // Russian Cyrillic
+    { t: '헬라 라디오',        ff: 'SANS' },   // Korean Hangul
+    { t: 'ΧΕΛΛΑ ΡΑΝΤΙΟ',    ff: 'SANS' },   // Greek
+    { t: 'הלה רדיו',         ff: 'SANS' },   // Hebrew
+    { t: 'هيلا راديو',        ff: 'SANS' },   // Arabic
+    { t: '赫拉電台',          ff: 'SANS' },   // Cantonese (Traditional)
+    { t: '⟟⋏⏁⌇ ⍀⏃⎅⟟⍜',     ff: 'SANS' },   // alien / unknown signal
+  ];
+  _logoRestIdx = 0; _logoSwap = null;  // current resting language + active crossfade
+  rotateLogo = () => {
+    if (this._logoHover || this._logoSwap || this._logoDecode) return;
+    const list = this.LOGO_LANGS;
+    const from = list[this._logoRestIdx];
+    this._logoRestIdx = (this._logoRestIdx + 1) % list.length;  // rotate through, no repeats
+    this._logoSwap = { from, to: list[this._logoRestIdx], start: performance.now(), dur: 1500 };
+  };
+  startLogoDecode = () => { if (this._logoHover) return; this._logoDecode = { start: performance.now() }; };
   onLogoHover = () => { this._logoDecode = null; this._logoHover = { dir: 'toAlien', start: performance.now(), dur: 700 }; };
   onLogoLeave = () => { this._logoHover = { dir: 'toEnglish', start: performance.now(), dur: 700 }; };
 
@@ -275,9 +365,8 @@ class Component extends DCLogic {
     this.clockTimer = setInterval(this.updateClocks, 1000);
     this.updateClocks();
     this.measure();
-    this.loadNews();
     this.startLogoDecode();
-    this._logoTimer = setInterval(this.startLogoDecode, 60000);
+    this._logoTimer = setInterval(this.rotateLogo, 30000);
     this._lastT = performance.now();
     const step = (t) => { this.frame(t); this.raf = requestAnimationFrame(step); };
     this.raf = requestAnimationFrame(step);
@@ -315,10 +404,14 @@ class Component extends DCLogic {
     while (this._tickerX <= -this._tickerHalf) this._tickerX += this._tickerHalf;
     while (this._tickerX > 0) this._tickerX -= this._tickerHalf;
     el.style.transform = 'translateX(' + this._tickerX + 'px)';
+    // fade on channel change (driven every frame so React reconciliation can't clobber it)
+    if (this._tickerOp == null) this._tickerOp = 1;
+    this._tickerOp += ((this._tickerOpTarget == null ? 1 : this._tickerOpTarget) - this._tickerOp) * Math.min(1, dt * 11);
+    if (this.tickerWrapEl) this.tickerWrapEl.style.opacity = this._tickerOp.toFixed(3);
   }
   onTickerDown = (e) => { this._tickerDrag = true; this._tickerMoved = false; this._tickerLastX = e.clientX; this._tickerDownX = e.clientX; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {} if (this.tickerEl) this.tickerEl.style.cursor = 'grabbing'; };
   onTickerMove = (e) => { if (!this._tickerDrag) return; const dx = e.clientX - this._tickerLastX; this._tickerLastX = e.clientX; this._tickerX += dx; if (Math.abs(e.clientX - this._tickerDownX) > 4) this._tickerMoved = true; };
-  onTickerItemClick = (e) => { if (this._tickerMoved || this._anomActive) { e.preventDefault(); e.stopPropagation(); } };
+  onTickerItemClick = (e) => { const href = e.currentTarget.getAttribute('href'); if (this._tickerMoved || this._anomActive || !href || href === '#') { e.preventDefault(); e.stopPropagation(); } };
   onTickerUp = (e) => { if (!this._tickerDrag) return; this._tickerDrag = false; try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (err) {} if (this.tickerEl) this.tickerEl.style.cursor = 'grab'; };
 
   measure = () => {
@@ -741,6 +834,9 @@ class Component extends DCLogic {
   onLock(idx) {
     this.currentIdx = idx;
     const st = this.STATIONS[idx]; if (st) this.startDecode(st.name);
+    // occasionally re-run the title decode on a station change, throttled to once / 20s
+    const now = performance.now();
+    if (!this._logoDecode && !this._logoHover && (!this._logoLast || now - this._logoLast > 20000) && Math.random() < 0.35) { this._logoLast = now; this.startLogoDecode(); }
     if (this.state.isPlaying) { this.dimAir(); this.loadStation(idx, true); }
     else this.stopAudio();
   }
@@ -840,6 +936,47 @@ class Component extends DCLogic {
     this.setState({ utc: p(now.getUTCHours()) + ':' + p(now.getUTCMinutes()) + ':' + p(now.getUTCSeconds()) });
   };
 
+  _tickerOp = 1; _tickerOpTarget = 1;  // ticker fade opacity (eased in the frame loop)
+  setTickerWrapRef = (el) => { this.tickerWrapEl = el; };
+  // fade the ticker out, swap content at the trough, fade back in (on channel change)
+  fadeTicker(key) {
+    if (key === this._feedKey) { this._tickerFading = false; return; }
+    this._tickerFading = true;
+    this._tickerOpTarget = 0;
+    if (this._tickerT1) clearTimeout(this._tickerT1);
+    this._tickerT1 = setTimeout(() => {
+      this._feedKey = key;
+      this._feedItems = this.buildForKey(key);
+      this._tickerMeasure = true;
+      this.forceUpdate();
+      this._tickerOpTarget = 1;
+      this._tickerFading = false;
+      if (this._tickerWantKey !== key) this.fadeTicker(this._tickerWantKey);
+    }, 230);
+  }
+
+  // pick the right feed for a ticker key ('anom' | 'dead' | station index)
+  buildForKey(key) {
+    if (key === 'anom') return this.ANOM_MSGS.map(m => ({ text: m, url: '#' }));
+    if (key === 'dead') return this.deadAirFeed();
+    return this.buildStationFeed(key);
+  }
+
+  // Build a station's randomized, non-repeating weird-transmission feed (signature lines + cosmic pool)
+  buildStationFeed(idx) {
+    const st = this.STATIONS[idx]; if (!st) return [];
+    const shuffle = (arr) => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
+    const sig = (this.STATION_LINES[st.name] || []).slice();
+    const cosmic = shuffle(this.COSMIC.slice()).slice(0, 14);
+    const pool = shuffle(sig.concat(cosmic));
+    return pool.map(m => ({ text: '► ' + m, url: '#' }));
+  }
+  deadAirFeed() {
+    const shuffle = (arr) => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
+    const dead = ['DEAD AIR — SCANNING THE VOID FOR A SIGNAL', 'NOTHING HERE BUT THE GRAND ORDER OF DESIGN AND YOU', 'TUNE IN. EVERY FREQUENCY KNOWS SOMETHING YOU DO NOT'];
+    return shuffle(dead.concat(shuffle(this.COSMIC.slice()).slice(0, 12))).map(m => ({ text: '► ' + m, url: '#' }));
+  }
+
   // Load the cached music-news ticker (refreshed daily by GitHub Action). Browser only reads a local file.
   loadNews = () => {
     fetch('data/ticker-news.json', { cache: 'no-store' })
@@ -883,26 +1020,55 @@ class Component extends DCLogic {
     const LOGO = 'HELLA_RADIO';
     const TB = "'TAY Birdie','Helvetica Neue',Helvetica,Arial,sans-serif";
     const GAL = "'Galactic','TAY Birdie',sans-serif";
-    if (this._logoDecode && performance.now() - this._logoDecode.start >= this._logoDecode.hold + this._logoDecode.dur) this._logoDecode = null;
+    const SANS = "'Hiragino Kaku Gothic ProN','Hiragino Sans GB','Microsoft YaHei','Helvetica Neue',Arial,sans-serif";
+    // title decodes through scripts: alien glyphs -> Japanese -> Chinese -> Russian -> Latin (a signal-decode event)
+    const LOGO_SCRIPTS = [
+      { t: LOGO, ff: GAL },          // alien / unknown signal (Galactic glyphs)
+      { t: 'ヘラ ラジオ', ff: SANS },     // Japanese Katakana
+      { t: '赫拉电台', ff: SANS },        // Chinese Mandarin
+      { t: 'ХЕЛЛА РАДИО', ff: SANS },   // Russian Cyrillic
+    ];
+    const FF = { TB: TB, SANS: SANS, GAL: GAL };
+    const LOGO_PHASE = 720, LOGO_SETTLE = 520;
+    if (this._logoDecode && performance.now() - this._logoDecode.start >= LOGO_SCRIPTS.length * LOGO_PHASE + LOGO_SETTLE) this._logoDecode = null;
+    const restLang = this.LOGO_LANGS[this._logoRestIdx];
     const logoThr = i => (i / LOGO.length) * 0.85;
     let logoChars;
     const hv = this._logoHover;
     if (hv) {
       const p = Math.min(1, (performance.now() - hv.start) / hv.dur);
       if (hv.dir === 'toAlien') {
-        // English -> alien, left-to-right; holds fully alien while hovered
-        logoChars = LOGO.split('').map((c, i) => (c === '_') ? { ch: c, ff: TB } : { ch: c, ff: (p > logoThr(i)) ? GAL : TB });
+        logoChars = LOGO.split('').map((c, i) => (c === '_') ? { ch: c, ff: TB, op: 1 } : { ch: c, ff: (p > logoThr(i)) ? GAL : TB, op: 1 });
       } else {
-        // alien -> English, left-to-right; clears when done
-        logoChars = LOGO.split('').map((c, i) => (c === '_') ? { ch: c, ff: TB } : { ch: c, ff: (p > logoThr(i)) ? TB : GAL });
+        logoChars = LOGO.split('').map((c, i) => (c === '_') ? { ch: c, ff: TB, op: 1 } : { ch: c, ff: (p > logoThr(i)) ? TB : GAL, op: 1 });
         if (p >= 1) this._logoHover = null;
       }
+    } else if (this._logoSwap) {
+      // 30s language rotation: dissolve current language out, next language in
+      const sw = this._logoSwap;
+      const p = Math.min(1, (performance.now() - sw.start) / sw.dur);
+      const cur = p < 0.5 ? sw.from : sw.to;
+      const half = p < 0.5 ? (1 - p / 0.5) : ((p - 0.5) / 0.5);
+      const op = half * half * (3 - 2 * half);
+      logoChars = cur.t.split('').map(c => ({ ch: c, ff: FF[cur.ff], op }));
+      if (p >= 1) this._logoSwap = null;
     } else if (this._logoDecode) {
       const el = performance.now() - this._logoDecode.start;
-      const p = el < this._logoDecode.hold ? 0 : (el - this._logoDecode.hold) / this._logoDecode.dur;
-      logoChars = LOGO.split('').map((c, i) => (c === '_') ? { ch: c, ff: TB } : { ch: c, ff: (p > logoThr(i)) ? TB : GAL });
+      const idx = Math.floor(el / LOGO_PHASE);
+      // smooth dissolve: each script fades in, holds, fades out before the next arrives
+      const local = (el - idx * LOGO_PHASE) / LOGO_PHASE;
+      const fade = local < 0.3 ? local / 0.3 : (local > 0.72 ? Math.max(0, (1 - local) / 0.28) : 1);
+      const op = fade * fade * (3 - 2 * fade);
+      if (idx < LOGO_SCRIPTS.length) {
+        const ph = LOGO_SCRIPTS[idx];
+        logoChars = ph.t.split('').map(c => ({ ch: c, ff: ph.ff, op: op }));
+      } else {
+        // resolve to the current resting language, fading up
+        const fp = Math.min(1, (el - LOGO_SCRIPTS.length * LOGO_PHASE) / LOGO_SETTLE);
+        logoChars = restLang.t.split('').map(c => ({ ch: c, ff: FF[restLang.ff], op: fp * fp * (3 - 2 * fp) }));
+      }
     } else {
-      logoChars = LOGO.split('').map(c => ({ ch: c, ff: TB }));
+      logoChars = restLang.t.split('').map(c => ({ ch: c, ff: FF[restLang.ff], op: 1 }));
     }
     const onAir = s.isPlaying && showStation;
     const showReroute = s.isPlaying && showStation && this._rerouted;
@@ -922,13 +1088,19 @@ class Component extends DCLogic {
 
     const networkLine = this.STATIONS.filter(s => s.type !== 'anomaly').length + ' LIVE STATIONS';
     const anomOn = this._anomActive && s.isPlaying;
-    const newsSrc = (this._newsItems && this._newsItems.length) ? this._newsItems : this.NEWS_FALLBACK;
-    const tickerItems = anomOn
-      ? this.ANOM_MSGS.map(m => ({ text: m, url: '#' }))
-      : newsSrc.map(it => ({ text: '► ' + String(it.source || 'NEWS').toUpperCase() + ' • ' + String(it.title).toUpperCase(), url: it.url }));
+    const desiredKey = anomOn ? 'anom' : (showStation ? li : 'dead');
+    if (this._feedKey === null) {
+      // first paint: set without fading
+      this._feedKey = desiredKey; this._tickerWantKey = desiredKey;
+      this._feedItems = this.buildForKey(desiredKey); this._tickerMeasure = true;
+    } else if (desiredKey !== this._feedKey) {
+      this._tickerWantKey = desiredKey;
+      if (!this._tickerFading) setTimeout(() => this.fadeTicker(desiredKey), 0);
+    }
+    const tickerItems = this._feedItems;
 
     return {
-      freqStr: s.freq.toFixed(2), utc: s.utc, axisLabels, networkLine, tickerItems,
+      freqStr: s.freq.toFixed(2), utc: s.utc, axisLabels, networkLine, tickerItems, setTickerWrapRef: this.setTickerWrapRef,
       setKnobAreaRef: this.setKnobAreaRef, setKnobRef: this.setKnobRef, setSpecWrapRef: this.setSpecWrapRef,
       setSpecCanvasRef: this.setSpecCanvasRef, setDotARef: this.setDotARef, setPlayBtnRef: this.setPlayBtnRef,
       setSignalCanvasRef: this.setSignalCanvasRef, setAirDotRef: this.setAirDotRef, setTickerTrackRef: this.setTickerTrackRef,
